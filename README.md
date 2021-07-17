@@ -1,62 +1,170 @@
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400"></a></p>
 
-<p align="center">
-<a href="https://travis-ci.org/laravel/framework"><img src="https://travis-ci.org/laravel/framework.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+# Task management system (Storex Web)
+### The required steps to setup the project:
+* install Laravel
+ ```
+composer global require laravel/installer
+ ```
+* download code or clone it
+```
+ git clone https://github.com/MhdTa/API-for-product-site-Damazlle.git
+```
+* set database parameter in .env file
+* run migrations
+ ```php
+ php artisan migrate
+ ```
+ * run the app
+ ```
+ php artisan serve
+ ```
+# The Structure
+We have 5 Controllers:
+  * Login Controller
+  * Register Controller
+  * Logout Controller
+  * CheckList Controller
+  * Task Controller.
+and 3 Models:
+ * CheckList Model 
+ * Task Model (many to one with CheckList) checkList can have multi Tasks but Task have one checkList
+ * User Mode
+ ## Web route file:
+  ```php
+  //log out Route
+Route::post('/logout', [LogoutController::class, 'store'])->name('logout');
+//log in Route
+Route::get('/login', [LoginController::class, 'index'])->name('login');
+Route::post('/login', [LoginController::class, 'store']);
+//sign in Route
+Route::get('/register', [RegisterController::class, 'index'])->name('register');
+Route::post('/register', [RegisterController::class, 'store']);
+//checkList Route
+Route::get('/', [CheckListController::class, 'home'])->name('home');
+Route::get('/checkList', [CheckListController::class, 'index'])->name('checkList');
+Route::post('/checkList', [CheckListController::class, 'store'])->name('checkList.add');
+Route::get('/checkList/{id}', [CheckListController::class, 'done'])->name('checkList.done');
+Route::get('/checkList/edit/{id}', [CheckListController::class, 'editView'])->name('checkList.edit');
+Route::post('/checkList/edit/{id}', [CheckListController::class, 'edit'])->name('checkList.edit');
+Route::delete('/checkList/delete/{id}', [CheckListController::class, 'destroy'])->name('checkList.destroy');
 
-## About Laravel
+//tasks Route
+Route::post('/task/{checkListId}', [TaskController::class, 'store'])->name('task.add');
+Route::get('/task/{id}', [TaskController::class, 'done'])->name('task.done');
+Route::get('/task/edit/{id}', [TaskController::class, 'editView'])->name('task.edit');
+Route::post('/task/edit/{id}', [TaskController::class, 'edit'])->name('task.edit');
+Route::delete('/task/delete/{id}', [TaskController::class, 'destroy'])->name('task.destroy');
+  ```
+ 
+ ## Signin
+After entering the required information, it will be verified and authenticated
+ ```php
+    public function store(Request $request)
+    {
+        $this->validate($request, [
+           
+            'username' => 'required|max:255',
+            'tel' => 'required|max:255',
+            'password' => 'required|confirmed',
+        ]);
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+        User::create([
+            'username' => $request->username,
+            'tel' => $request->tel,
+            'password' => Hash::make($request->password),
+        ]);
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+        auth()->attempt($request->only('tel', 'password'));
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+        return redirect()->route('home');
+    }
+    
+  ```
+   ![Screenshot](images/1.JPG)
+## Log in
+You can also login by entering phone number and password
+ ```php
+ public function store(Request $request)
+    {
+        //validate the data
+        $this->validate($request, [
+            'tel' => 'required',
+            'password' => 'required',
+        ]);
 
-## Learning Laravel
+        
+        if (!auth()->attempt($request->only('tel', 'password'), $request->remember)) {
+            return back()->with('status', 'Invalid login details');
+        }
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+        return redirect()->route('home');
+    }
+ ```
+ ![Screenshot](images/2.JPG)
+## Check List page
+after login you can show your check list
+ ```php
+    public function home(Request $request)
+    {
+        //get check list of user
+        $checkLists = CheckList::get()->where('user_id', auth()->user()->id);
+        //get count of done check lists
+        $checkListDoneCount = $checkLists->where('status','Done')->count();
+        //if user choice filter the data
+        if ($request->input('sort') && $request->input('sort') != 'Oldest') 
+           $this->sortMyTasks($request->input('sort'), $checkLists);
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains over 1500 video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+        return view('home', [
+            'checkLists' => $checkLists,
+            'checkListDoneCount' => $checkListDoneCount
+        ]);
+    }
+  ```
+  ![Screenshot](images/3.JPG)
+  and you can:
+  * Edit your check list
+  * Delete your check list
+  * Make your check list Done
+  * if you make check list done : all her tasks will be done
+  * 
+  ![Screenshot](images/5.JPG)
+  
+## Tasks
+* you can add task to any check list or edit it or delete it or make it Done
+* you can filter your Tasks:
+  * Sort by Latest Tasks
+  * Sort by Oldest Tasks
+  * Sort by todo Tasks
+  * Sort by Done Tasks
+  * Hide Done Tasks
+  
+   ![Screenshot](images/4.JPG)
+   
+ ## Example of latest tasks sort:
+  ![Screenshot](images/6.JPG)
+  
+ ## Example of hidden done tasks :
+  ![Screenshot](images/7.JPG)
+  
 
-## Laravel Sponsors
-
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the Laravel [Patreon page](https://patreon.com/taylorotwell).
-
-### Premium Partners
-
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Cubet Techno Labs](https://cubettech.com)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[Many](https://www.many.co.uk)**
-- **[Webdock, Fast VPS Hosting](https://www.webdock.io/en)**
-- **[DevSquad](https://devsquad.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[OP.GG](https://op.gg)**
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+ ## Notes:
+ * If you are not logged-in you can not add checkList
+  ```php
+     public function __construct()
+    {
+        //just loged in user can do these functions
+        $this->middleware(['auth']);
+    }
+   ```
+ ## DataBase:
+ * Users Table:
+   ![Screenshot](images/10.JPG)
+ * CheckLists Table:
+   ![Screenshot](images/8.JPG) 
+ * Tasks Table:
+   ![Screenshot](images/9.JPG) 
+   
+   Hope you liked it ..... Mohamed Taha
+    
+     
