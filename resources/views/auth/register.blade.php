@@ -37,9 +37,9 @@
     <!-- ============================================================== -->
     <form class="splash-container" action="{{ route('register') }}" method="post">
         @csrf
-        <div class="card">
+        <div class="card" style="text-align: center;">
             <div class="card-header">
-                <h3 class="mb-1">Registrations Form</h3>
+                <img  class="logo-img"src="/assets/images/logo.png" alt="logo">
                 <p>Please enter your user information.</p>
             </div>
             <div class="card-body">
