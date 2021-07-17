@@ -8,9 +8,9 @@ composer global require laravel/installer
  ```
 * download code or clone it
 ```
- git clone https://github.com/MhdTa/API-for-product-site-Damazlle.git
+ git clone https: https://github.com/MhdTa/Task-management-system-StorexWeb.git
 ```
-* set database parameter in .env file
+Set database parameter in .env file
 * run migrations
  ```php
  php artisan migrate
